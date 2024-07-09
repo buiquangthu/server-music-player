@@ -24,10 +24,24 @@ const handlerSendEmail = async (val, email) => {
             from: `"Support MusicPlayer" <${process.env.USERNAME_EMAIL}>`, // sender address
             to: email, // list of receivers
             subject: "Xác minh email", // Subject line
-            text: "your code to verification email", // plain text body
+            text: "Mã xác minh của bạn", // plain text body
             html: `<h1>${val}</h1>`, // html body
         });
 
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+const handlerSendEmailForgotPassword = async (val, email) => {
+    try {
+        await transporter.sendMail({
+            from: `"Support MusicPlayer" <${process.env.USERNAME_EMAIL}>`, // sender address
+            to: email,
+            subject: "Đặt lại mật khẩu",
+            text: "Mật khẩu mới",
+            html: `<h1>${val}</h1>`
+        });
     } catch (error) {
         console.log(error)
     }
@@ -130,6 +144,58 @@ const login = asyncHandler(async (req, res) => {
     });
 });
 
+const generateRandomPasswoerd = (length) => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * charactersLength)
+        result += characters[randomIndex]
+    }
+    return result;
+}
+
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const randomPassword = generateRandomPasswoerd(8);
+    console.log(randomPassword)
+
+    const user = await UserModel.findOne({ email });
+    if (user) {
+        const salt = await bcrypt.genSalt(10);
+
+        const hashPassword = await bcrypt.hash(`${randomPassword}`, salt);
+        await UserModel.findByIdAndUpdate(
+            user._id,
+            {
+                passWord: hashPassword,
+                isChangePassword: true
+            }
+        ).then(() =>{
+            console.log('Xong')
+        }).catch((error) => {
+            console.log(error)
+        })
+        await handlerSendEmailForgotPassword(randomPassword, email).then(() => {
+            res.status(200).json({
+                message: 'Đã gửi mật khẩu mới',
+                data: []
+            })
+        }).catch((error) => {
+            res.status(401)
+            throw new Error('Không thể gửi mật khẩu mới')
+        })
+
+    } else {
+        res.status(401)
+        throw new Error('Người dùng không tồn tại')
+    }
 
 
-module.exports = { register, login, verification };
+
+
+})
+
+
+module.exports = { register, login, verification, forgotPassword };
