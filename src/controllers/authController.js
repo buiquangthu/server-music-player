@@ -30,6 +30,7 @@ const handlerSendEmail = async (val, email) => {
 
     } catch (error) {
         console.log(error)
+        console.log('Không thể gửi Email')
     }
 }
 
@@ -139,6 +140,8 @@ const login = asyncHandler(async (req, res) => {
         data: {
             id: existingUser.id,
             email: existingUser.email,
+            userName: existingUser.userName,
+            avatar: existingUser.avatar,
             accessToken: await getJsonWebToken(email, existingUser.id)
         }
     });
